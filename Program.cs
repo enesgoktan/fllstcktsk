@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Döngüye karþý önlem
+        // Dï¿½ngï¿½ye karï¿½ï¿½ ï¿½nlem
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     })
     .ConfigureApiBehaviorOptions(options =>
@@ -41,7 +41,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "kebapbackend API", Version = "v1" });
 
-    // JWT Authentication tanýmý
+    // JWT Authentication tanï¿½mï¿½
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' followed by your token.",
@@ -90,12 +90,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-// Development ortamýnda Swagger aktif
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Swagger UI aktif (her ortamda)
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseRouting();
 
@@ -104,6 +101,9 @@ app.UseCors("AllowAll");
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+// Ana sayfa yÃ¶nlendirmesi (Swagger'a)
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.MapControllers();
 

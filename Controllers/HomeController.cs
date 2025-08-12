@@ -4,6 +4,7 @@ using kebapbackend.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace kebapbackend.Controllers
 {
@@ -18,15 +19,38 @@ namespace kebapbackend.Controllers
             _context = context;
         }
 
+        [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetCurrentUser()
         {
-            var user = await _context.Users.FirstOrDefaultAsync();
-            if (user == null) return NotFound("User not found.");
+            var username = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return Unauthorized("Kimlik doğrulaması yok veya kullanıcı adı claim'i bulunamadı.");
+            }
+
+            var user = await _context.Users
+                .Where(u => u.Username == username)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Username,
+                    u.Email,
+                    u.Name,
+                    u.Position,
+                    u.CreatedAt
+                })
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return NotFound("Kullanıcı bulunamadı.");
+            }
+
             return Ok(user);
         }
 
-        // 2. Pozisyonu manager olan �al��anlar listesi
+        // 2. Pozisyonu manager olan çalışanlar listesi
         [HttpGet("managers")]
         public async Task<IActionResult> GetManagers()
         {
@@ -37,7 +61,7 @@ namespace kebapbackend.Controllers
             return Ok(managers);
         }
 
-        // 3. �al��an say�s�n� verir
+        // 3. Çalışan sayısını verir
         [HttpGet("employee-count")]
         public async Task<IActionResult> GetEmployeeCount()
         {

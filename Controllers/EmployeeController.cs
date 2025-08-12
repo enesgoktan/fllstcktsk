@@ -1,4 +1,4 @@
-﻿using kebapbackend.Data;
+using kebapbackend.Data;
 using kebapbackend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -64,19 +64,19 @@ namespace kebapbackend.Controllers
 
                 // Otomatik hesap oluştur
                 var tempPassword = GenerateTempPassword();
-                var username = await GenerateUsername(employee.Name);
+                var generatedUsername = await GenerateUsername(employee.Name);
 
                 Console.WriteLine("🚀 ŞİFRE OLUŞTURULDU!");
                 Console.WriteLine($"=== YENİ ÇALIŞAN HESABI ===");
                 Console.WriteLine($"İsim: {employee.Name}");
-                Console.WriteLine($"Username: {username}");
+                Console.WriteLine($"Username: {generatedUsername}");
                 Console.WriteLine($"Geçici Şifre: {tempPassword}");
                 Console.WriteLine($"Tarih: {DateTime.Now}");
                 Console.WriteLine($"==========================");
                 var newUser = new User
                 {
-                    Username = username,
-                    Email = $"{username}@gmail.com",
+                    Username = generatedUsername,
+                    Email = $"{generatedUsername}@gmail.com",
                     Name = employee.Name,
                     Position = employee.Position,
                     MustChangePassword = true,
@@ -98,7 +98,7 @@ namespace kebapbackend.Controllers
                     Employee = employee,
                     Account = new
                     {
-                        Username = username,
+                        Username = generatedUsername,
                         TempPassword = tempPassword,
                         Message = "Hesap otomatik oluşturuldu. İşçi ilk girişte şifresini değiştirmek zorunda."
                     }
@@ -199,15 +199,15 @@ namespace kebapbackend.Controllers
                 .Replace("ı", "i");
 
             var counter = 1;
-            var username = baseName;
+            var candidateUsername = baseName;
 
-            while (await _context.Users.AnyAsync(u => u.Username == username))
+            while (await _context.Users.AnyAsync(u => u.Username == candidateUsername))
             {
-                username = $"{baseName}{counter}";
+                candidateUsername = $"{baseName}{counter}";
                 counter++;
             }
 
-            return username;
+            return candidateUsername;
         }
     }
 }

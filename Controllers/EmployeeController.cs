@@ -1,4 +1,4 @@
-﻿using kebapbackend.Data;
+using kebapbackend.Data;
 using kebapbackend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -46,6 +46,14 @@ namespace kebapbackend.Controllers
         [HttpPost]
         public async Task<ActionResult<object>> Post(Employee employee)
         {
+            // Admin kontrolü
+            var username = User.Identity?.Name;
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null || user.Position != "admin")
+            {
+                return Forbid("Sadece admin kullanıcılar çalışan ekleyebilir.");
+            }
+        {
             try
             {
                 Console.WriteLine("🔥 POST METODU ÇALIŞTI!");
@@ -55,6 +63,13 @@ namespace kebapbackend.Controllers
                 {
                     Console.WriteLine("❌ Validation hatası: Name veya Position boş");
                     return BadRequest("Name and Position are required.");
+                }
+
+                // Position kontrolü - admin position'ı kullanılamaz
+                if (employee.Position.ToLower() == "admin")
+                {
+                    Console.WriteLine("❌ Validation hatası: 'admin' position'ı kullanılamaz");
+                    return BadRequest("'admin' position'ı kullanılamaz. Lütfen farklı bir position seçin.");
                 }
 
                 // Employee'ı kaydet

@@ -1,11 +1,10 @@
-﻿using kebapbackend.Data;
+using kebapbackend.Data;
 using kebapbackend.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.JSInterop.Infrastructure; // << EKLENDİ
 
 namespace kebapbackend.Controllers
 {
@@ -15,8 +14,7 @@ namespace kebapbackend.Controllers
     public class EmployeeController : ControllerBase
     {
         private readonly AppDbContext _context;
-
-        private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>(); // << EKLENDİ
+        private readonly PasswordHasher<User> _passwordHasher = new PasswordHasher<User>();
 
         public EmployeeController(AppDbContext context)
         {
@@ -46,6 +44,14 @@ namespace kebapbackend.Controllers
         [HttpPost]
         public async Task<ActionResult<object>> Post(Employee employee)
         {
+            // Admin kontrolü
+            var username = User.Identity?.Name;
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null || user.Position != "admin")
+            {
+                return Forbid("Sadece admin kullanıcılar çalışan ekleyebilir.");
+            }
+
             try
             {
                 Console.WriteLine("🔥 POST METODU ÇALIŞTI!");
@@ -57,6 +63,13 @@ namespace kebapbackend.Controllers
                     return BadRequest("Name and Position are required.");
                 }
 
+                // Position kontrolü - admin position'ı kullanılamaz
+                if (employee.Position.ToLower() == "admin")
+                {
+                    Console.WriteLine("❌ Validation hatası: 'admin' position'ı kullanılamaz");
+                    return BadRequest("'admin' position'ı kullanılamaz. Lütfen farklı bir position seçin.");
+                }
+
                 // Employee'ı kaydet
                 _context.Employees.Add(employee);
                 await _context.SaveChangesAsync();
@@ -64,25 +77,25 @@ namespace kebapbackend.Controllers
 
                 // Otomatik hesap oluştur
                 var tempPassword = GenerateTempPassword();
-                var username = await GenerateUsername(employee.Name);
+                var generatedUsername = await GenerateUsername(employee.Name);
 
                 Console.WriteLine("🚀 ŞİFRE OLUŞTURULDU!");
                 Console.WriteLine($"=== YENİ ÇALIŞAN HESABI ===");
                 Console.WriteLine($"İsim: {employee.Name}");
-                Console.WriteLine($"Username: {username}");
+                Console.WriteLine($"Username: {generatedUsername}");
                 Console.WriteLine($"Geçici Şifre: {tempPassword}");
                 Console.WriteLine($"Tarih: {DateTime.Now}");
                 Console.WriteLine($"==========================");
+
                 var newUser = new User
                 {
-                    Username = username,
-                    Email = $"{username}@gmail.com",
+                    Username = generatedUsername,
+                    Email = $"{generatedUsername}@gmail.com",
                     Name = employee.Name,
                     Position = employee.Position,
                     MustChangePassword = true,
                     TempPassword = tempPassword,
                     CreatedAt = DateTime.UtcNow,
-
                     EmployeeId = employee.Id
                 };
 
@@ -98,7 +111,7 @@ namespace kebapbackend.Controllers
                     Employee = employee,
                     Account = new
                     {
-                        Username = username,
+                        Username = generatedUsername,
                         TempPassword = tempPassword,
                         Message = "Hesap otomatik oluşturuldu. İşçi ilk girişte şifresini değiştirmek zorunda."
                     }

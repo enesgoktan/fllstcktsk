@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -37,7 +37,7 @@ namespace kebapbackend.Controllers
                     Username = "admin",
                     Email = "admin@gmail.com",
                     Name = "Admin User",
-                    Position = "manager",
+                    Position = "admin",
                     MustChangePassword = false,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -49,6 +49,17 @@ namespace kebapbackend.Controllers
                 _context.SaveChanges();
 
                 Console.WriteLine("✅ Admin kullanıcı oluşturuldu: admin / 1234");
+            }
+            else
+            {
+                // Mevcut admin kullanıcısının position'ını güncelle
+                var existingAdmin = _context.Users.FirstOrDefault(u => u.Username == "admin");
+                if (existingAdmin != null && existingAdmin.Position != "admin")
+                {
+                    existingAdmin.Position = "admin";
+                    _context.SaveChanges();
+                    Console.WriteLine("✅ Mevcut admin kullanıcısının position'ı 'admin' olarak güncellendi");
+                }
             }
         }
 
@@ -226,6 +237,28 @@ namespace kebapbackend.Controllers
             return Ok("Test endpoint çalışıyor!");
         }
 
+        [HttpGet("test-admin")]
+        public async Task<IActionResult> TestAdmin()
+        {
+            var admin = await _context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
+            if (admin != null)
+            {
+                return Ok(new
+                {
+                    message = "Admin kullanıcısı bulundu",
+                    admin = new
+                    {
+                        admin.Id,
+                        admin.Username,
+                        admin.Name,
+                        admin.Position,
+                        admin.Email
+                    }
+                });
+            }
+            return NotFound("Admin kullanıcısı bulunamadı");
+        }
+
         [Authorize]
         [HttpGet("protected")]
         public IActionResult ProtectedEndpoint()
@@ -240,6 +273,31 @@ namespace kebapbackend.Controllers
                 IsAuthenticated = hasAuth,
                 UserName = userName,
                 Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+            });
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var username = User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+                return Unauthorized();
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null)
+                return NotFound("Kullanıcı bulunamadı");
+
+            return Ok(new
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Name = user.Name,
+                Email = user.Email,
+                Position = user.Position,
+                IsAdmin = user.Position == "admin",
+                MustChangePassword = user.MustChangePassword,
+                CreatedAt = user.CreatedAt
             });
         }
     }

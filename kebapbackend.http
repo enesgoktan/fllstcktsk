@@ -1,0 +1,6 @@
+@kebapbackend_HostAddress = http://http://localhost:5149/api/employees
+
+GET {{kebapbackend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
